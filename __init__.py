@@ -1,5 +1,6 @@
 import bpy
 from io_scene_gltf2.blender.exp import gltf2_blender_gather_materials
+from io_scene_gltf2.blender.imp.gltf2_blender_material import BlenderMaterial
 
 bl_info = {
     "name" : "glTF KHR_materials_variants IO",
@@ -26,6 +27,13 @@ def patched_gather_gltf(exporter, export_settings):
     orig_gather_gltf(exporter, export_settings)
     export_user_extensions('custom_gather_gltf_hook', export_settings, exporter._GlTF2Exporter__gltf)
 
+from io_scene_gltf2.blender.imp.gltf2_blender_node import BlenderNode
+orig_create_mesh_object = BlenderNode.create_mesh_object
+def patched_create_mesh_object(gltf, vnode):
+    obj = orig_create_mesh_object(gltf, vnode)
+    create_mesh_object_with_material_variants(obj, gltf, vnode)
+    return obj
+
 class VariantMaterialProperties(bpy.types.PropertyGroup):
     name: bpy.props.StringProperty(
         name="Name",
@@ -46,7 +54,7 @@ class AddVariantMaterial(bpy.types.Operator):
 
     def execute(self, context):
         props = context.object.VariantMaterialArrayProperty.value
-        prop = props.add()
+        props.add()
         return {'FINISHED'}
 
 class RemoveVariantMaterial(bpy.types.Operator):
@@ -62,6 +70,7 @@ class RemoveVariantMaterial(bpy.types.Operator):
 
 def register():
     gltf2_blender_export.__gather_gltf = patched_gather_gltf
+    BlenderNode.create_mesh_object = patched_create_mesh_object
 
     bpy.utils.register_class(NodePanel)
     bpy.utils.register_class(VariantMaterialProperties)
@@ -74,6 +83,7 @@ def register():
 
 def unregister():
     gltf2_blender_export.__gather_gltf = orig_gather_gltf
+    BlenderNode.create_mesh_object = orig_create_mesh_object
 
     bpy.utils.unregister_class(NodePanel)
     bpy.utils.unregister_class(VariantMaterialProperties)
@@ -109,6 +119,41 @@ class NodePanel(bpy.types.Panel):
             text="Add Variant Material",
             icon="ADD"
         )
+
+# Import
+
+def create_mesh_object_with_material_variants(obj, gltf, vnode):
+    if gltf.data.extensions is None or glTF_extension_name not in gltf.data.extensions:
+        return
+
+    variant_names = gltf.data.extensions[glTF_extension_name]["variants"]
+    pynode = gltf.data.nodes[vnode.mesh_node_idx]
+    pymesh = gltf.data.meshes[pynode.mesh]
+
+    variant_materials = obj.VariantMaterialArrayProperty.value
+    for primitive in pymesh.primitives:
+        if primitive.extensions is None or glTF_extension_name not in primitive.extensions:
+            continue
+        mappings = primitive.extensions[glTF_extension_name]["mappings"]
+        for mapping in mappings:
+            variants = mapping["variants"]
+            material_index = mapping["material"]
+            for variant_index in variants:
+                variant_material = variant_materials.add()
+                variant_material.name = variant_names[variant_index]["name"]
+                pymaterial = gltf.data.materials[material_index]
+                vertex_color = "COLOR_0" if "COLOR_0" in primitive.attributes else None
+                if vertex_color not in pymaterial.blender_material:
+                    BlenderMaterial.create(gltf, material_index, vertex_color)
+                material_name = pymaterial.blender_material[vertex_color]
+                blender_material = bpy.data.materials[material_name]
+                variant_material.material = blender_material
+                # Put material is slot if not there
+                mesh = obj.data
+                if material_name not in mesh.materials:
+                    mesh.materials.append(blender_material)
+
+# Export
 
 class glTF2ExportUserExtension:
     def __init__(self):
