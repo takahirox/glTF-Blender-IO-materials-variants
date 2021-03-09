@@ -4,7 +4,7 @@
 
 ## Compatible Blender version
 
-&gt;= 2.92
+&gt;= 2.91
 
 ## How to install
 
