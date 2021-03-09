@@ -37,3 +37,15 @@ Ensure the addon is installed and enabled. You can easily find the addon by inpu
 [glTF `KHR_materials_variants` extension](https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_materials_variants) import, export, and edit support in Blender
 
 ## How to use
+
+The addon adds the "Materials Variants" panel to the Object property. You can add, remove, and edit the variants (alternate) materials for an mesh object in the panel. And the addon import `KHR_materials_variants` extension to the panel.
+
+![Materials Variants panel](https://user-images.githubusercontent.com/7637832/110414708-3f6ae180-8045-11eb-86f6-cbf5a2848388.png)
+
+The addon also import `KHR_materials_variants` extension materials into the material slots of a mesh object.
+
+![Import to the material slots](https://user-images.githubusercontent.com/7637832/110414597-003c9080-8045-11eb-871b-ce758886c1aa.png)
+
+And the addon exports (not only active material but also) variants materials and the variants materials configurations as `KHR_materials_variants` extension to the exported glTF.
+
+![image](https://user-images.githubusercontent.com/7637832/110415173-43e3ca00-8046-11eb-9b4f-21e208ee8d3f.png)
