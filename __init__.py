@@ -5,7 +5,7 @@ from io_scene_gltf2.blender.imp.gltf2_blender_material import BlenderMaterial
 bl_info = {
     "name" : "glTF KHR_materials_variants IO",
     "author" : "Takahiro Aoyagi",
-    "description" : "Add on for glTF KHR_materials_variants extension",
+    "description" : "Addon for glTF KHR_materials_variants extension",
     "blender" : (2, 91, 0),
     "version" : (0, 0, 1),
     "location" : "",
@@ -18,6 +18,12 @@ bl_info = {
 
 glTF_extension_name = "KHR_materials_variants"
 
+# Custom hooks. Defined here and registered/unregistered in register()/unregister().
+# Note: If other installed addon have custom hooks on the same way at the same places
+#       they can be conflicted. Ex: There are two addons A and B which have custom hooks.
+#       Imagine A is installed, B is installed, and then A is removed. B is still installed
+#       But removing A resets the hooks in unregister().
+
 # gather_gltf_hook does not expose the info we need, make a custom hook for now
 # ideally we can resolve this upstream somehow https://github.com/KhronosGroup/glTF-Blender-IO/issues/1009
 from io_scene_gltf2.blender.exp import gltf2_blender_export
@@ -27,12 +33,16 @@ def patched_gather_gltf(exporter, export_settings):
     orig_gather_gltf(exporter, export_settings)
     export_user_extensions('custom_gather_gltf_hook', export_settings, exporter._GlTF2Exporter__gltf)
 
+# The glTF2 importer doesn't provide a hook mechanism for user extensions so
+# manually extend a function to import the extension
 from io_scene_gltf2.blender.imp.gltf2_blender_node import BlenderNode
 orig_create_mesh_object = BlenderNode.create_mesh_object
 def patched_create_mesh_object(gltf, vnode):
     obj = orig_create_mesh_object(gltf, vnode)
     create_mesh_object_with_material_variants(obj, gltf, vnode)
     return obj
+
+# Properties
 
 class VariantMaterialProperties(bpy.types.PropertyGroup):
     name: bpy.props.StringProperty(
@@ -48,6 +58,8 @@ class VariantMaterialProperties(bpy.types.PropertyGroup):
 class VariantMaterialArrayProperty(bpy.types.PropertyGroup):
     value: bpy.props.CollectionProperty(name="value", type=VariantMaterialProperties)
 
+# Operators
+
 class AddVariantMaterial(bpy.types.Operator):
     bl_idname = "wm.add_variant_material"
     bl_label = "Add Material Variant"
@@ -61,6 +73,7 @@ class RemoveVariantMaterial(bpy.types.Operator):
     bl_idname = "wm.remove_variant_material"
     bl_label = "Remove Material Variant"
 
+    # Set by NodePanel
     index: bpy.props.IntProperty(name="index")
 
     def execute(self, context):
@@ -68,31 +81,7 @@ class RemoveVariantMaterial(bpy.types.Operator):
         props.remove(self.index)
         return {'FINISHED'}
 
-def register():
-    gltf2_blender_export.__gather_gltf = patched_gather_gltf
-    BlenderNode.create_mesh_object = patched_create_mesh_object
-
-    bpy.utils.register_class(NodePanel)
-    bpy.utils.register_class(VariantMaterialProperties)
-    bpy.utils.register_class(VariantMaterialArrayProperty)
-    bpy.utils.register_class(AddVariantMaterial)
-    bpy.utils.register_class(RemoveVariantMaterial)
-    bpy.types.Scene.VariantMaterialProperties = bpy.props.PointerProperty(type=VariantMaterialProperties)
-    bpy.types.Scene.VariantMaterialArrayProperty = bpy.props.PointerProperty(type=VariantMaterialArrayProperty)
-    bpy.types.Object.VariantMaterialArrayProperty = bpy.props.PointerProperty(type=VariantMaterialArrayProperty)
-
-def unregister():
-    gltf2_blender_export.__gather_gltf = orig_gather_gltf
-    BlenderNode.create_mesh_object = orig_create_mesh_object
-
-    bpy.utils.unregister_class(NodePanel)
-    bpy.utils.unregister_class(VariantMaterialProperties)
-    bpy.utils.unregister_class(VariantMaterialArrayProperty)
-    bpy.utils.unregister_class(AddVariantMaterial)
-    bpy.utils.unregister_class(RemoveVariantMaterial)
-    del bpy.types.Scene.VariantMaterialProperties
-    del bpy.types.Scene.VariantMaterialArrayProperty
-    del bpy.types.Object.VariantMaterialArrayProperty
+# Panels
 
 class NodePanel(bpy.types.Panel):
     bl_label = 'Variants Materials'
@@ -120,6 +109,30 @@ class NodePanel(bpy.types.Panel):
             icon="ADD"
         )
 
+# Register/Unregister
+
+def register():
+    gltf2_blender_export.__gather_gltf = patched_gather_gltf
+    BlenderNode.create_mesh_object = patched_create_mesh_object
+
+    bpy.utils.register_class(NodePanel)
+    bpy.utils.register_class(VariantMaterialProperties)
+    bpy.utils.register_class(VariantMaterialArrayProperty)
+    bpy.utils.register_class(AddVariantMaterial)
+    bpy.utils.register_class(RemoveVariantMaterial)
+    bpy.types.Object.VariantMaterialArrayProperty = bpy.props.PointerProperty(type=VariantMaterialArrayProperty)
+
+def unregister():
+    gltf2_blender_export.__gather_gltf = orig_gather_gltf
+    BlenderNode.create_mesh_object = orig_create_mesh_object
+
+    bpy.utils.unregister_class(NodePanel)
+    bpy.utils.unregister_class(VariantMaterialProperties)
+    bpy.utils.unregister_class(VariantMaterialArrayProperty)
+    bpy.utils.unregister_class(AddVariantMaterial)
+    bpy.utils.unregister_class(RemoveVariantMaterial)
+    del bpy.types.Object.VariantMaterialArrayProperty
+
 # Import
 
 def create_mesh_object_with_material_variants(obj, gltf, vnode):
@@ -139,22 +152,27 @@ def create_mesh_object_with_material_variants(obj, gltf, vnode):
             variants = mapping["variants"]
             material_index = mapping["material"]
             for variant_index in variants:
-                variant_material = variant_materials.add()
-                variant_material.name = variant_names[variant_index]["name"]
                 pymaterial = gltf.data.materials[material_index]
                 vertex_color = "COLOR_0" if "COLOR_0" in primitive.attributes else None
                 if vertex_color not in pymaterial.blender_material:
                     BlenderMaterial.create(gltf, material_index, vertex_color)
-                material_name = pymaterial.blender_material[vertex_color]
-                blender_material = bpy.data.materials[material_name]
+
+                # Add MaterialVariant property
+                variant_material = variant_materials.add()
+                variant_material.name = variant_names[variant_index]["name"]
+                blender_material_name = pymaterial.blender_material[vertex_color]
+                blender_material = bpy.data.materials[blender_material_name]
                 variant_material.material = blender_material
+
                 # Put material is slot if not there
+                # Assume obj is a mesh object. Is this assumption always true?
                 mesh = obj.data
-                if material_name not in mesh.materials:
+                if blender_material_name not in mesh.materials:
                     mesh.materials.append(blender_material)
 
 # Export
 
+# Use glTF-Blender-IO User extension hook mechanism
 class glTF2ExportUserExtension:
     def __init__(self):
         from io_scene_gltf2.io.com.gltf2_io_extensions import Extension
@@ -163,7 +181,7 @@ class glTF2ExportUserExtension:
     # Currenlty blender_object in gather_mesh_hook is None
     # So set up the extension in gather_node_hook instead.
     # I assume a mesn is not shared among multiple nodes,
-    # Is the assumption true?
+    # Is the assumption always true?
     def gather_node_hook(self, gltf2_object, blender_object, export_settings):
         if gltf2_object.mesh is None:
             return
@@ -172,8 +190,9 @@ class glTF2ExportUserExtension:
         if blender_object.VariantMaterialArrayProperty is None:
             return
 
-        # @TODO: Verify unique names?
+        # @TODO: Verify or ensure unique names?
 
+        # Make groups which have the same material
         variant_materials = blender_object.VariantMaterialArrayProperty.value
         mapping_dict = {}
         for variant_material in variant_materials:
@@ -194,10 +213,19 @@ class glTF2ExportUserExtension:
         if not mapping_dict:
             return
 
+        # Make the extension properties from the groups
+        # Note: variants property is defined as variant index array in the extension specification
+        #       but variant index is unknown yet in this hook because making variant indices
+        #       needs to know all variant names by accessing all mesh primitives.
+        #       So making variant name array here and replacing it with variant index array
+        #       later in custom_gather_gltf_hook.
         mappings = []
         for material in mapping_dict.keys():
             mappings.append({"material": material, "variants": mapping_dict[material]})
 
+        # Assign the extension to primitives.
+        # @TODO: Currently assigning the same variants materials configuration to all the primitives
+        #        in a mesh but ideally different configuration can be assigned for each primitive.
         mesh = gltf2_object.mesh
         primitives = mesh.primitives
         for primitive in primitives:
@@ -210,9 +238,10 @@ class glTF2ExportUserExtension:
             )
 
     def custom_gather_gltf_hook(self, gltf2_object, export_settings):
-        name_dict = {}
         meshes = gltf2_object.meshes
 
+        # Get all the variant names from all the meshes
+        name_dict = {}
         for mesh in meshes:
             primitives = mesh.primitives
             for primitive in primitives:
@@ -227,6 +256,9 @@ class glTF2ExportUserExtension:
         if not name_dict:
             return
 
+        # Now all the variant names are known.
+        # So replacing variant name array set in gather_node_hook
+        # with variant index array here.
         names = list(name_dict.keys())
         for mesh in meshes:
             primitives = mesh.primitives
@@ -241,6 +273,7 @@ class glTF2ExportUserExtension:
                         new_variants.append(names.index(name))
                     mapping["variants"] = new_variants
 
+        # Set the root extension
         variants = []
         for name in names:
             variants.append({'name': name})
