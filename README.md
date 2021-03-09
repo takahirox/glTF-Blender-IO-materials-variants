@@ -48,4 +48,5 @@ The addon also imports the `KHR_materials_variants` extension materials into the
 
 The addon exports (not only an active material but also) the variants materials, and exports the variants materials configurations as `KHR_materials_variants` extension to the exported glTF.
 
-![Export as KHR_materials_variants extension](https://user-images.githubusercontent.com/7637832/110415833-7cd06e80-8047-11eb-9204-36ae8f1a5f90.png)
+![Export as KHR_materials_variants extension](https://user-images.githubusercontent.com/7637832/110416443-96be8100-8048-11eb-873d-8685540353fd.png)
+
