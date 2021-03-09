@@ -49,3 +49,7 @@ The addon also imports the `KHR_materials_variants` extension materials into the
 The addon exports (not only an active material but also) the variants materials, and exports the variants materials configurations as `KHR_materials_variants` extension to the exported glTF.
 
 ![Export as KHR_materials_variants extension](https://user-images.githubusercontent.com/7637832/110416635-e43aee00-8048-11eb-92b5-aa74ec41f2f9.png)
+
+## Limitations
+
+Currently the addon allows to set variant materials per a mesh object but it should allow it per a vertex_group of a mesh object similar to that the Blender allows to assign a material per a vertex_group of a mesh object [#4](https://github.com/takahirox/glTF-Blender-IO-materials-variants/issues/4)
