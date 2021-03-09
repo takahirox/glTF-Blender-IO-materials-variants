@@ -77,8 +77,6 @@ def register():
     bpy.utils.register_class(VariantMaterialArrayProperty)
     bpy.utils.register_class(AddVariantMaterial)
     bpy.utils.register_class(RemoveVariantMaterial)
-    bpy.types.Scene.VariantMaterialProperties = bpy.props.PointerProperty(type=VariantMaterialProperties)
-    bpy.types.Scene.VariantMaterialArrayProperty = bpy.props.PointerProperty(type=VariantMaterialArrayProperty)
     bpy.types.Object.VariantMaterialArrayProperty = bpy.props.PointerProperty(type=VariantMaterialArrayProperty)
 
 def unregister():
@@ -90,8 +88,6 @@ def unregister():
     bpy.utils.unregister_class(VariantMaterialArrayProperty)
     bpy.utils.unregister_class(AddVariantMaterial)
     bpy.utils.unregister_class(RemoveVariantMaterial)
-    del bpy.types.Scene.VariantMaterialProperties
-    del bpy.types.Scene.VariantMaterialArrayProperty
     del bpy.types.Object.VariantMaterialArrayProperty
 
 class NodePanel(bpy.types.Panel):
