@@ -1,6 +1,6 @@
 # glTF-Blender-IO-materials-variants
 
-**glTF-Blender-IO-materials-variants** is a [Blender](https://www.blender.org/) addon for [glTF `KHR_materials_variants` extension](https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_materials_variants) on top of [`KHR_Blender-IO`](https://github.com/KhronosGroup/glTF-Blender-IO) addon.
+**glTF-Blender-IO-materials-variants** is a [Blender](https://www.blender.org/) addon for [glTF `KHR_materials_variants` extension](https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_materials_variants) on top of [`glTF-Blender-IO`](https://github.com/KhronosGroup/glTF-Blender-IO) addon.
 
 ## Compatible Blender version
 
