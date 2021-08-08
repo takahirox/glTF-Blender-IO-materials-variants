@@ -6,7 +6,7 @@ bl_info = {
     "name" : "glTF KHR_materials_variants IO",
     "author" : "Takahiro Aoyagi",
     "description" : "Addon for glTF KHR_materials_variants extension",
-    "blender" : (2, 91, 0),
+    "blender" : (2, 93, 2),
     "version" : (0, 0, 1),
     "location" : "",
     "wiki_url": "https://github.com/takahirox/glTF-Blender-IO-materials-variants",
@@ -23,15 +23,6 @@ glTF_extension_name = "KHR_materials_variants"
 #       they can be conflicted. Ex: There are two addons A and B which have custom hooks.
 #       Imagine A is installed, B is installed, and then A is removed. B is still installed
 #       But removing A resets the hooks in unregister().
-
-# gather_gltf_hook does not expose the info we need, make a custom hook for now
-# ideally we can resolve this upstream somehow https://github.com/KhronosGroup/glTF-Blender-IO/issues/1009
-from io_scene_gltf2.blender.exp import gltf2_blender_export
-from io_scene_gltf2.io.exp.gltf2_io_user_extensions import export_user_extensions
-orig_gather_gltf = gltf2_blender_export.__gather_gltf
-def patched_gather_gltf(exporter, export_settings):
-    orig_gather_gltf(exporter, export_settings)
-    export_user_extensions('custom_gather_gltf_hook', export_settings, exporter._GlTF2Exporter__gltf)
 
 # The glTF2 importer doesn't provide a hook mechanism for user extensions so
 # manually extend a function to import the extension
@@ -112,7 +103,6 @@ class NodePanel(bpy.types.Panel):
 # Register/Unregister
 
 def register():
-    gltf2_blender_export.__gather_gltf = patched_gather_gltf
     BlenderNode.create_mesh_object = patched_create_mesh_object
 
     bpy.utils.register_class(NodePanel)
@@ -123,7 +113,6 @@ def register():
     bpy.types.Object.VariantMaterialArrayProperty = bpy.props.PointerProperty(type=VariantMaterialArrayProperty)
 
 def unregister():
-    gltf2_blender_export.__gather_gltf = orig_gather_gltf
     BlenderNode.create_mesh_object = orig_create_mesh_object
 
     bpy.utils.unregister_class(NodePanel)
@@ -237,7 +226,7 @@ class glTF2ExportUserExtension:
                 required=False
             )
 
-    def custom_gather_gltf_hook(self, gltf2_object, export_settings):
+    def gather_gltf_hook(self, gltf2_object, export_settings):
         meshes = gltf2_object.meshes
 
         # Get all the variant names from all the meshes
