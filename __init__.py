@@ -7,7 +7,7 @@ bl_info = {
     "author" : "Takahiro Aoyagi",
     "description" : "Addon for glTF KHR_materials_variants extension",
     "blender" : (2, 93, 2),
-    "version" : (0, 0, 1),
+    "version" : (0, 0, 2),
     "location" : "",
     "wiki_url": "https://github.com/takahirox/glTF-Blender-IO-materials-variants",
     "tracker_url": "https://github.com/takahirox/glTF-Blender-IO-materials-variants/issues",
