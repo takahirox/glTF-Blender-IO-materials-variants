@@ -226,7 +226,7 @@ class glTF2ExportUserExtension:
                 required=False
             )
 
-    def gather_gltf_hook(self, gltf2_object, export_settings):
+    def gather_gltf_extensions_hook(self, gltf2_object, export_settings):
         meshes = gltf2_object.meshes
 
         # Get all the variant names from all the meshes
